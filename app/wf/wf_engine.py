@@ -12,6 +12,7 @@ from app.util import osutil
 import os
 import app.util
 from app.api.wf_tasks.standard import wait_task
+from app import monitoring
 
 # Function to read workflow JSON from a file
 def read_workflow_json(workflow_json):
@@ -113,6 +114,7 @@ async def execute_task(conn, task, workflow_run_id, workflow_name):
         print(f"Unexpected error in task {task_name}: {e}")
         update_workflow_task(conn, new_wf_task_id, 'error', str(e))
         conn.rollback()
+        monitoring.push_workflow_status(workflow_name, 'error')
 
 """
 async def execute_task_old(conn, task, workflow_run_id):
@@ -183,6 +185,7 @@ async def execute_task_old(conn, task, workflow_run_id):
         conn.rollback()  # Rollback any partial changes
         if conn2:#local creation so release
                 myorcldb.release_conn(conn2)
+        monitoring.push_workflow_status(workflow_name, 'error')
 
 """
 
@@ -238,6 +241,7 @@ async def main(workflow_json_file):
 
         # Update the workflow run to complete
         update_workflow_run(conn, new_wf_id, 'finished')
+        monitoring.push_workflow_status(workflow_name, 'finished')
 
     except Exception as e:
         # Log the error and rollback any partial changes
@@ -246,6 +250,7 @@ async def main(workflow_json_file):
             conn.rollback()
         if 'new_wf_id' in locals():
             update_workflow_run(conn, new_wf_id, 'error')
+            monitoring.push_workflow_status(workflow_name, 'error')
 
     finally:
             # Ensure the database connection is released
