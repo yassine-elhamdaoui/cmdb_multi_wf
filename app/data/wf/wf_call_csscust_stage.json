@@ -1,0 +1,44 @@
+{
+    "workflow": {
+      "name": "css_cust_stage",
+      "description": "Workflow to cache table cmdb.CSS_CUSTOMER_STAGE_TBL",
+      "schedule_interval": "59 minutes",
+      "multi_instance": "no",
+      "tasks": [
+        {
+          "name": "start_task",
+          "type": "wf_standard",
+          "callable": "app.api.wf_tasks.standard.start_workflow",
+          "args": {},
+          "sync": true
+        },
+        {
+          "name": "do_api_csscustomer_stage",
+          "type": "PyNodeTask",
+          "callable": "app.api.wf_tasks.cmdb_ops.call_api_csscustomer_stage",
+          "args": {
+            "db_connection": "cmdb"
+          },
+          "sync": true
+        },
+        {
+          "name": "end_task",
+          "type": "wf_standard",
+          "callable": "app.api.wf_tasks.standard.end_workflow",
+          "args": {},
+          "sync": true
+        }
+      ],
+      "dependencies": [
+        {
+          "upstream": "start_task",
+          "downstream": ["do_api_csscustomer_stage"]
+        },
+        {
+          "upstream": "do_api_csscustomer_stage",
+          "downstream": "end_task"
+        }
+      ]
+    }
+  }
+  

@@ -1,0 +1,110 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: PROJECT_NAME-cronjob
+  namespace: K8S_NAMESPACE
+spec:
+  schedule: "*/15 * * * *"
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          annotations:
+            sidecar.istio.io/inject: "true"
+        spec:
+          imagePullSecrets:
+            - name: ocirsecret
+          containers:
+          - name: cmdbmultiwfcreator
+            image: "CONTAINER_IMAGE"
+            imagePullPolicy: IfNotPresent
+            command: ["./wait_for_sidecar.sh", "python3.12", "app/main.py"]
+            volumeMounts:
+              - name: db-wallet
+                mountPath: /opt/db-wallet
+                readOnly: true
+            env:
+              - name: DB_USERNAME_LIST
+                valueFrom:
+                  secretKeyRef:
+                    name: PROJECT_NAME-env
+                    key: DB_USERNAME_LIST
+              - name: DB_PASSWORD_LIST
+                valueFrom:
+                  secretKeyRef:
+                    name: PROJECT_NAME-env
+                    key: DB_PASSWORD_LIST
+              - name: WF_DB_USER
+                valueFrom:
+                  secretKeyRef:
+                    name: PROJECT_NAME-env
+                    key: WF_DB_USER
+              - name: ACCESS_TOKEN_URL
+                valueFrom:
+                  secretKeyRef:
+                    name: PROJECT_NAME-env
+                    key: ACCESS_TOKEN_URL					
+              - name: CLIENT_ID
+                valueFrom:
+                  secretKeyRef:
+                    name: PROJECT_NAME-env
+                    key: CLIENT_ID
+              - name: CLIENT_SECRET
+                valueFrom:
+                  secretKeyRef:
+                    name: PROJECT_NAME-env
+                    key: CLIENT_SECRET
+              - name: ORGOCID_URL
+                valueFrom:
+                  secretKeyRef:
+                    name: PROJECT_NAME-env
+                    key: ORGOCID_URL
+              - name: SCOPE
+                valueFrom:
+                  secretKeyRef:
+                    name: PROJECT_NAME-env
+                    key: SCOPE		
+              - name: SCHEMA_USER
+                valueFrom:
+                  secretKeyRef:
+                    name: db-credentials
+                    key: DB_USERNAMES
+              - name: SCHEMA_PASSWORD
+                valueFrom:
+                  secretKeyRef:
+                    name: db-credentials
+                    key: DB_PASSWORDS
+              - name: WALLET_PASSWORD
+                valueFrom:
+                  secretKeyRef:
+                    name: db-credentials
+                    key: DB_WALLET_PASSWORD
+              - name: ADMIN_USERNAME
+                valueFrom:
+                  secretKeyRef:
+                    name: db-admin-credentials
+                    key: username
+              - name: ADMIN_PASSWORD
+                valueFrom:
+                  secretKeyRef:
+                    name: db-admin-credentials
+                    key: password
+              - name: SERVICE_NAME
+                valueFrom:
+                  secretKeyRef:
+                    name: db-credentials
+                    key: TNS_NAME
+              - name: TNS_ADMIN
+                value: /opt/db-wallet
+            securityContext:
+              allowPrivilegeEscalation: false
+          volumes:
+            - name: db-wallet
+              secret:
+                secretName: db-wallet
+          restartPolicy: Never
+          securityContext:
+            runAsUser: 1001
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 1

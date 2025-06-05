@@ -1,0 +1,97 @@
+{
+    "workflow": {
+      "name": "get_org_details_workflow",
+      "description": "Workflow to get organization ID and details with a wait period",
+      "schedule_interval": "20 minutes",
+      "multi_instance": "no",
+      "tasks": [
+        {
+          "name": "start_task",
+          "type": "wf_standard",
+          "callable": "app.api.wf_tasks.standard.start_workflow",
+          "args": {},
+          "sync": true
+        },
+        {
+          "name": "get_orgocid_for_task",
+          "type": "PyNodeTask",
+          "callable": "app.api.wf_tasks.orgocid.get_orgocid_for",
+          "args": {
+            "db_connection": "cmdb",
+            "n": 30
+          },
+          "sync": true
+        },
+        {
+          "name": "wait_task_1",
+          "type": "wf_standard",
+          "callable": "app.api.wf_tasks.standard.wait_task",
+          "args": {
+            "seconds": 100
+          },
+          "sync": true
+        },
+        {
+          "name": "get_orgocid_details_task",
+          "type": "PyNodeTask",
+          "callable": "app.api.wf_tasks.orgocid.get_orgocid_details",
+          "args": {
+            "db_connection": "cmdb"
+          },
+          "sync": true
+        },
+        {
+          "name": "wait_task_2",
+          "type": "wf_standard",
+          "callable": "app.api.wf_tasks.standard.wait_task",
+          "args": {
+            "seconds": 100
+          },
+          "sync": true
+        },
+        {
+          "name": "set_regid_in_orgocid_details_task",
+          "type": "PyNodeTask",
+          "callable": "app.api.wf_tasks.orgocid.set_regid_in_orgocid_details",
+          "args": {
+            "db_connection": "cmdb"
+          },
+          "sync": true
+        },        
+        {
+          "name": "end_task",
+          "type": "wf_standard",
+          "callable": "app.api.wf_tasks.standard.end_workflow",
+          "args": {},
+          "sync": true
+        }
+      ],
+      "dependencies": [
+        {
+          "upstream": "start_task",
+          "downstream": ["get_orgocid_for_task"]
+        },
+        {
+          "upstream": "get_orgocid_for_task",
+          "downstream": ["wait_task_1"]
+        },
+        {
+          "upstream": "wait_task_1",
+          "downstream": ["get_orgocid_details_task"]
+        },
+        {
+          "upstream": "get_orgocid_details_task",
+          "downstream": ["wait_task_2"]
+        },
+        {
+          "upstream": "wait_task_2",
+          "downstream": ["set_regid_in_orgocid_details_task"]
+        },
+        {
+          "upstream": "set_regid_in_orgocid_details_task",
+          "downstream": "end_task"
+        }
+      ]
+    }
+  }
+  

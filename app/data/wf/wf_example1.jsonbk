@@ -1,0 +1,66 @@
+{
+    "workflow": {
+      "name": "complex_branching_workflow",
+      "description": "A more complex workflow with branching",
+      "schedule_interval": "10 minutes",
+      "multi_instance": "no",
+      "tasks": [
+        {
+          "name": "start_task",
+          "type": "wf_standard",
+          "callable": "app.api.wf_tasks.standard.start_workflow",
+          "args": {},
+          "sync": true
+        },
+        {
+          "name": "branch_1_task",
+          "type": "PyNodeTask",
+          "callable": "app.api.wf_tasks.sample.do_something",
+          "args": {
+            "branch_arg1": "branch_value1",
+            "branch_arg2": "branch_value2"
+          },
+          "sync": false
+        },
+        {
+          "name": "wait_task_1",
+          "type": "wf_standard",
+          "callable": "app.api.wf_tasks.standard.wait_task",
+          "args": { "seconds": 10},
+          "sync": true
+        },
+        {
+          "name": "branch_2_task",
+          "type": "PyNodeTask",
+          "callable": "app.api.wf_tasks.sample.do_something_else",
+          "args": {
+            "db_connection": "cmdb",
+            "result_of_task_name": "branch_1_task",
+            "branch_arg2": "branch_value4"
+          },
+          "sync": true
+        },
+        {
+          "name": "end_task",
+          "type": "wf_standard",
+          "callable": "app.api.wf_tasks.standard.end_workflow",
+          "args": {},
+          "sync": true
+        }
+      ],
+      "dependencies": [
+        {
+          "upstream": "start_task",
+          "downstream": ["wait_task_1"]
+        },
+        {
+          "upstream": "wait_task_1",
+          "downstream": ["branch_1_task", "branch_2_task"]
+        },        {
+          "upstream": ["branch_1_task", "branch_2_task"],
+          "downstream": "end_task"
+        }
+      ]
+    }
+  }
+  

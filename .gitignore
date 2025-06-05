@@ -1,0 +1,23 @@
+#.gitignore file
+
+#ignore Python virtual environments
+.venv/
+venv/
+.vscode/
+
+#ignore local db credentials
+/app/data/myoracle.cnf
+*.env
+
+#ignore .pyc files and __pycache__ directories
+*__pycache__/
+*.pyc
+
+#build folders
+build/
+builds/
+
+#misc files
+*.log
+*.bak
+*.coverage

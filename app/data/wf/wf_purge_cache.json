@@ -1,0 +1,44 @@
+{
+    "workflow": {
+      "name": "purge_api_cache",
+      "description": "Workflow to purge table cmdb.api_cache",
+      "schedule_interval": "1440 minutes",
+      "multi_instance": "no",
+      "tasks": [
+        {
+          "name": "start_task",
+          "type": "wf_standard",
+          "callable": "app.api.wf_tasks.standard.start_workflow",
+          "args": {},
+          "sync": true
+        },
+        {
+          "name": "do_purge_api_cache",
+          "type": "PyNodeTask",
+          "callable": "app.api.wf_tasks.cmdb_ops.purge_api_cache",
+          "args": {
+            "db_connection": "cmdb"
+          },
+          "sync": true
+        },
+        {
+          "name": "end_task",
+          "type": "wf_standard",
+          "callable": "app.api.wf_tasks.standard.end_workflow",
+          "args": {},
+          "sync": true
+        }
+      ],
+      "dependencies": [
+        {
+          "upstream": "start_task",
+          "downstream": ["do_purge_api_cache"]
+        },
+        {
+          "upstream": "do_purge_api_cache",
+          "downstream": "end_task"
+        }
+      ]
+    }
+  }
+  

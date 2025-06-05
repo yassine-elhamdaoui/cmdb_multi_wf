@@ -1,0 +1,71 @@
+variables:
+  CONTAINER_IMAGE_BASE: "${CONTAINER_REGISTRY_REGION}.ocir.io/${CONTAINER_REPO_NAMESPACE}/${CONTAINER_REPO_NAME}/${CI_PROJECT_NAME}"
+
+stages:
+  - STATIC_ANALYSIS
+  - UNIT_TEST
+  - INTEGRATION_TEST
+  - DEPLOY
+
+Secret_Detection:
+  except:
+    - develop
+    - tags
+  stage: STATIC_ANALYSIS
+  before_script:
+    - mkdir -p build
+  script:
+    - chmod +x ./bin/gitleaks.sh
+    - ./bin/gitleaks.sh
+  after_script:
+    - rm -rf build
+
+
+.DEPLOY:
+  stage: DEPLOY
+  before_script:
+    - docker login -u "${CONTAINER_REPO_NAMESPACE}/${USERNAME}" -p "${TOKEN}" ${CONTAINER_REGISTRY_REGION}.ocir.io
+    - chmod +x ./bin/init_ci.sh ./bin/create-kubeconfig.sh
+    - source ./bin/init_ci.sh
+    - source ./bin/create-kubeconfig.sh
+  script:
+    - chmod +x ./bin/publish_artifacts.sh ./bin/check-image-severity.sh ./bin/deploy.sh ./bin/enable-vss-scan.sh ./bin/sign-image.sh
+    - ./bin/enable-vss-scan.sh
+    - ./bin/publish_artifacts.sh
+  after_script:
+    - docker logout ${CONTAINER_REGISTRY_REGION}.ocir.io
+    - rm -rf .docker
+    - rm -rf .oci
+
+DEPLOY_TO_CLUSTER_SANDBOX:
+  environment:
+    name: SANDBOX
+  except:
+    - tags
+    - /^release.*$/
+    - /^bug-fix.*$/
+    - main
+    - develop
+  extends: .DEPLOY
+
+DEPLOY_TO_CLUSTER_DEV:
+  environment:
+    name: DEV
+  only:
+    - develop
+  extends: .DEPLOY
+
+DEPLOY_TO_CLUSTER_STAGE:
+  environment:
+    name: UAT
+  only:
+    - /^release.*$/
+    - /^bug-fix.*$/
+  extends: .DEPLOY
+
+DEPLOY_TO_CLUSTER_PROD:
+  environment:
+    name: PROD
+  only:
+    - tags
+  extends: .DEPLOY
